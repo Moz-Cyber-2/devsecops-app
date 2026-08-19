@@ -10,13 +10,13 @@ on:
 jobs:
   # ─────────────────────────────────────────────────────────────────────
   # 1. Secrets Scanning — TruffleHog
-  #    Reuses the production-grade workflow from security-gh-actions.
+  #    Reuses the production-grade workflow from gh-actions-security.
   #    If a secret is found: PR is blocked + comment posted + label added.
   #    Developer can run /clean-secrets to rewrite git history.
   # ─────────────────────────────────────────────────────────────────────
   secrets-scan:
     name: Secrets Scan (TruffleHog)
-    uses: DEMO_ORG/security-gh-actions/.github/workflows/secrets-scan-pr.yaml@main
+    uses: moz-cyber/gh-actions-security/.github/workflows/secrets-scan-pr.yaml@main
     permissions:
       contents: read
       pull-requests: write
@@ -28,7 +28,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   sast:
     name: SAST (Semgrep)
-    uses: DEMO_ORG/security-gh-actions/.github/workflows/reusable-sast.yml@main
+    uses: moz-cyber/gh-actions-security/.github/workflows/reusable-sast.yml@main
     permissions:
       contents: read
       security-events: write
@@ -86,7 +86,7 @@ jobs:
   container-scan:
     name: Container Image Scan (Trivy)
     needs: build
-    uses: DEMO_ORG/security-gh-actions/.github/workflows/reusable-container-scan.yml@main
+    uses: moz-cyber/gh-actions-security/.github/workflows/reusable-container-scan.yml@main
     permissions:
       contents: read
       security-events: write

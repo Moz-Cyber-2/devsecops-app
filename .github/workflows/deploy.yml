@@ -26,7 +26,7 @@ jobs:
         id: meta
         run: |
           TAG="${{ github.sha }}"
-          IMAGE_FULL="ghcr.io/DEMO_ORG/devsecops-app:${TAG}"
+          IMAGE_FULL="ghcr.io/moz-cyber/devsecops-app:${TAG}"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "image_full=${IMAGE_FULL}" >> "$GITHUB_OUTPUT"
 
@@ -43,8 +43,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/DEMO_ORG/devsecops-app:${{ github.sha }}
-            ghcr.io/DEMO_ORG/devsecops-app:latest
+            ghcr.io/moz-cyber/devsecops-app:${{ github.sha }}
+            ghcr.io/moz-cyber/devsecops-app:latest
 
   # ─────────────────────────────────────────────────────────────────────
   # 2. Deploy to local kind cluster via self-hosted runner
@@ -84,7 +84,7 @@ jobs:
           # Replace :latest with the exact SHA for reproducibility
           # (Note: deny-latest-tag policy will block :latest anyway)
           kustomize edit set image \
-            ghcr.io/DEMO_ORG/devsecops-app=ghcr.io/DEMO_ORG/devsecops-app:${{ needs.build-and-push.outputs.image_tag }}
+            ghcr.io/moz-cyber/devsecops-app=ghcr.io/moz-cyber/devsecops-app:${{ needs.build-and-push.outputs.image_tag }}
 
       - name: Apply manifests via kustomize
         run: |

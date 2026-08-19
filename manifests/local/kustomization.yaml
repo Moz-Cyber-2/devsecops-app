@@ -7,9 +7,9 @@ resources:
   - ../base
 
 # Image tag is overridden by the deploy pipeline using:
-#   kustomize edit set image ghcr.io/DEMO_ORG/devsecops-app=ghcr.io/DEMO_ORG/devsecops-app:$SHA
+#   kustomize edit set image ghcr.io/moz-cyber/devsecops-app=ghcr.io/moz-cyber/devsecops-app:$SHA
 images:
-  - name: ghcr.io/DEMO_ORG/devsecops-app
+  - name: ghcr.io/moz-cyber/devsecops-app
     newTag: latest
 
 # Patch service to NodePort so we can reach it from the host

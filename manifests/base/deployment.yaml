@@ -18,7 +18,7 @@ spec:
       containers:
         - name: devsecops-demo-app
           # Image is patched by kustomize overlay
-          image: ghcr.io/DEMO_ORG/devsecops-app:latest
+          image: ghcr.io/moz-cyber/devsecops-app:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
