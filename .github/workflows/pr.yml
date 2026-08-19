@@ -52,13 +52,15 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build \
+          podman build \
             --tag "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}" \
             .
 
       - name: Export image tarball
         run: |
-          docker save "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}" \
+          podman save \
+            --format=docker \
+            "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}" \
             -o "${{ steps.meta.outputs.image_tarball }}"
 
       - name: Upload image tarball
