@@ -10,7 +10,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   secrets-scan:
     name: Secrets Scan
-    uses: moz-cyber/gh-actions-security/.github/workflows/secrets-scan-pr.yaml@main
+    uses: Moz-Cyber-1/gh-actions-security/.github/workflows/secrets-scan-pr.yaml@main
     permissions:
       contents: read
       pull-requests: write
@@ -20,7 +20,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   sast:
     name: SAST
-    uses: moz-cyber/gh-actions-security/.github/workflows/reusable-sast.yml@main
+    uses: Moz-Cyber-1/gh-actions-security/.github/workflows/reusable-sast.yml@main
     permissions:
       contents: read
       security-events: write
@@ -76,7 +76,7 @@ jobs:
   container-scan:
     name: Container Scan
     needs: build
-    uses: moz-cyber/gh-actions-security/.github/workflows/reusable-container-scan.yml@main
+    uses: Moz-Cyber-1/gh-actions-security/.github/workflows/reusable-container-scan.yml@main
     permissions:
       contents: read
       security-events: write
