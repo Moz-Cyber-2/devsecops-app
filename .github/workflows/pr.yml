@@ -1,4 +1,4 @@
-name: PR Pipeline — Security Scans
+name: PR
 
 on:
   pull_request:
@@ -6,134 +6,80 @@ on:
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────
-  # 1. Secrets Scanning — TruffleHog
-  #    Scans every commit in the PR diff for leaked secrets.
-  #    Fails the PR if any unverified or verified secret is detected.
+  # 1. Secrets Scanning — TruffleHog (reusable from gh-actions-security)
   # ─────────────────────────────────────────────────────────────────────
   secrets-scan:
     name: Secrets Scan
-    runs-on: devsecops-demo
+    uses: moz-cyber/gh-actions-security/.github/workflows/secrets-scan-pr.yaml@main
     permissions:
       contents: read
       pull-requests: write
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: TruffleHog — scan PR commits
-        id: trufflehog
-        uses: trufflesecurity/trufflehog@main
-        with:
-          base: ${{ github.event.pull_request.base.sha }}
-          head: ${{ github.event.pull_request.head.sha }}
-          extra_args: --only-verified=false --fail
-
-      - name: Comment on PR if secrets found
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo:  context.repo.repo,
-              issue_number: context.issue.number,
-              body: [
-                '## Secrets Scan — FAILED',
-                '',
-                'TruffleHog detected **hardcoded secrets** in this PR.',
-                '',
-                '**Do NOT merge.** Remove the secrets, rotate any exposed credentials, and rewrite git history if needed.',
-                '',
-                '```',
-                'git filter-repo --path <file> --invert-paths',
-                '```',
-              ].join('\n'),
-            });
-
   # ─────────────────────────────────────────────────────────────────────
-  # 2. SAST — Semgrep
-  #    Scans for OWASP Top 10, injection flaws, hardcoded secrets.
-  #    Findings uploaded to GitHub Security tab (SARIF).
+  # 2. SAST — Semgrep (reusable from gh-actions-security)
   # ─────────────────────────────────────────────────────────────────────
   sast:
     name: SAST
-    runs-on: devsecops-demo
+    uses: moz-cyber/gh-actions-security/.github/workflows/reusable-sast.yml@main
     permissions:
       contents: read
       security-events: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Semgrep
-        id: semgrep
-        run: |
-          pip install semgrep --quiet
-          semgrep scan \
-            --config "p/owasp-top-ten" \
-            --config "p/nodejs" \
-            --config "p/secrets" \
-            --sarif \
-            --output semgrep.sarif \
-            --error \
-            src/ || echo "SEMGREP_FAILED=true" >> "$GITHUB_ENV"
-
-      - name: Upload SARIF to GitHub Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: semgrep.sarif
-          category: semgrep-sast
-        continue-on-error: true
-
-      - name: Fail if Semgrep found issues
-        if: env.SEMGREP_FAILED == 'true'
-        run: |
-          echo "Semgrep found security issues. See GitHub Security tab for details."
-          exit 1
+    with:
+      config: "p/owasp-top-ten p/nodejs p/secrets"
+      fail_on_findings: true
 
   # ─────────────────────────────────────────────────────────────────────
-  # 3. Container Image Scan — Trivy
-  #    Builds the image and scans for HIGH/CRITICAL CVEs in one job.
-  #    No artifact passing needed — build and scan in the same runner.
+  # 3. Build Docker image — artifact passed to container scan
   # ─────────────────────────────────────────────────────────────────────
-  container-scan:
-    name: Container Scan
+  build:
+    name: Build
     runs-on: devsecops-demo
     permissions:
       contents: read
-      security-events: write
-
+    outputs:
+      image_tarball: ${{ steps.meta.outputs.image_tarball }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set image metadata
+        id: meta
+        run: |
+          IMAGE="devsecops-app"
+          TAG="pr-${{ github.event.pull_request.number }}-${{ github.sha }}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "image_tarball=${IMAGE}.tar" >> "$GITHUB_OUTPUT"
 
       - name: Build Docker image
         run: |
           docker build \
-            --tag "devsecops-app:pr-${{ github.event.pull_request.number }}" \
+            --tag "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}" \
             .
 
-      - name: Run Trivy vulnerability scan
-        id: trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: "devsecops-app:pr-${{ github.event.pull_request.number }}"
-          format: sarif
-          output: trivy-results.sarif
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          ignore-unfixed: false
+      - name: Export image tarball
+        run: |
+          docker save "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}" \
+            -o "${{ steps.meta.outputs.image_tarball }}"
 
-      - name: Upload SARIF to GitHub Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload image tarball
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: trivy-results.sarif
-          category: trivy-container
-        continue-on-error: true
+          name: docker-image
+          path: ${{ steps.meta.outputs.image_tarball }}
+          retention-days: 1
 
-      - name: Clean up image
-        if: always()
-        run: docker rmi "devsecops-app:pr-${{ github.event.pull_request.number }}" || true
+  # ─────────────────────────────────────────────────────────────────────
+  # 4. Container Scan — Trivy (reusable from gh-actions-security)
+  # ─────────────────────────────────────────────────────────────────────
+  container-scan:
+    name: Container Scan
+    needs: build
+    uses: moz-cyber/gh-actions-security/.github/workflows/reusable-container-scan.yml@main
+    permissions:
+      contents: read
+      security-events: write
+    with:
+      image_tarball_artifact: docker-image
+      image_name: devsecops-app
+      severity: "HIGH,CRITICAL"
+      fail_on_findings: true
