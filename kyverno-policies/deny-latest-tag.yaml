@@ -1,0 +1,40 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: deny-latest-tag
+  annotations:
+    policies.kyverno.io/title: Deny Latest Image Tag
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Using ':latest' image tags makes deployments non-reproducible and hides
+      which version is running. This policy blocks any pod using ':latest'.
+      The demo deploy pipeline pushes ':latest' by default — this will BLOCK it.
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: deny-latest-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - devsecops-demo
+      validate:
+        message: >-
+          [KYVERNO BLOCK] Image tag ':latest' is not allowed.
+          Pin your image to a specific SHA or semver tag.
+          Rejected image: '{{ request.object.spec.containers[0].image }}'
+        foreach:
+          - list: request.object.spec.containers
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.image }}"
+                    operator: Equals
+                    value: "*:latest"
+                  - key: "{{ element.image }}"
+                    operator: NotContains
+                    value: ":"

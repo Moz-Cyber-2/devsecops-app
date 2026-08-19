@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devsecops-demo-app
+  namespace: devsecops-demo
+  labels:
+    app: devsecops-demo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devsecops-demo-app
+  template:
+    metadata:
+      labels:
+        app: devsecops-demo-app
+    spec:
+      containers:
+        - name: devsecops-demo-app
+          # Image is patched by kustomize overlay
+          image: ghcr.io/DEMO_ORG/devsecops-app:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          # INTENTIONAL: no securityContext — Kyverno will block this
+          # A compliant deployment would have:
+          #   securityContext:
+          #     runAsNonRoot: true
+          #     runAsUser: 1000
+          #     allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

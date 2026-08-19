@@ -1,0 +1,23 @@
+{
+  "name": "devsecops-demo-app",
+  "version": "1.0.0",
+  "description": "Intentionally vulnerable Node.js API — DevSecOps demo (OWASP API Top 10)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "body-parser": "^1.20.2",
+    "jsonwebtoken": "^8.5.1",
+    "mysql": "^2.18.1",
+    "lodash": "4.17.4",
+    "axios": "0.21.1",
+    "node-fetch": "2.6.1",
+    "serialize-javascript": "2.1.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}

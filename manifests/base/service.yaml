@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: devsecops-demo-app
+  namespace: devsecops-demo
+  labels:
+    app: devsecops-demo-app
+spec:
+  selector:
+    app: devsecops-demo-app
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+  type: ClusterIP

@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: devsecops-demo
+
+resources:
+  - ../base
+
+# Image tag is overridden by the deploy pipeline using:
+#   kustomize edit set image ghcr.io/DEMO_ORG/devsecops-app=ghcr.io/DEMO_ORG/devsecops-app:$SHA
+images:
+  - name: ghcr.io/DEMO_ORG/devsecops-app
+    newTag: latest
+
+# Patch service to NodePort so we can reach it from the host
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/type
+        value: NodePort
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30080
+    target:
+      kind: Service
+      name: devsecops-demo-app
