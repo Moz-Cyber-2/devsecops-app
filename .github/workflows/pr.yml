@@ -10,7 +10,8 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   secrets-scan:
     name: Secrets Scan
-    uses: Moz-Cyber-1/gh-actions-security/.github/workflows/secrets-scan-pr.yaml@main
+    uses: Moz-Cyber-2/gh-actions-security/.github/workflows/secrets-scan-pr.yaml@main
+    secrets: inherit
     permissions:
       contents: read
       pull-requests: write
@@ -20,16 +21,18 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   sast:
     name: SAST
-    uses: Moz-Cyber-1/gh-actions-security/.github/workflows/reusable-sast.yml@main
+    uses: Moz-Cyber-2/gh-actions-security/.github/workflows/reusable-sast.yml@main
+    secrets: inherit
     permissions:
       contents: read
       security-events: write
+      pull-requests: write
     with:
-      config: "p/owasp-top-ten p/nodejs p/secrets"
+      config: "p/owasp-top-ten p/nodejs p/secrets p/kubernetes"
       fail_on_findings: true
 
   # ─────────────────────────────────────────────────────────────────────
-  # 3. Build Docker image — artifact passed to container scan
+  # 3. Build Docker image — stays on self-hosted runner
   # ─────────────────────────────────────────────────────────────────────
   build:
     name: Build
@@ -37,7 +40,7 @@ jobs:
     permissions:
       contents: read
     outputs:
-      image_tarball: ${{ steps.meta.outputs.image_tarball }}
+      image_ref: ${{ steps.meta.outputs.image_ref }}
     steps:
       - uses: actions/checkout@v4
 
@@ -46,42 +49,29 @@ jobs:
         run: |
           IMAGE="devsecops-app"
           TAG="pr-${{ github.event.pull_request.number }}-${{ github.sha }}"
-          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "image_tarball=${IMAGE}.tar" >> "$GITHUB_OUTPUT"
+          echo "image_ref=${IMAGE}:${TAG}" >> "$GITHUB_OUTPUT"
 
-      - name: Build Docker image
+      - name: Build image
         run: |
           podman build \
-            --tag "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}" \
+            --tag "${{ steps.meta.outputs.image_ref }}" \
             .
-
-      - name: Export image tarball
-        run: |
-          podman save \
-            --format=docker \
-            "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}" \
-            -o "${{ steps.meta.outputs.image_tarball }}"
-
-      - name: Upload image tarball
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-image
-          path: ${{ steps.meta.outputs.image_tarball }}
-          retention-days: 1
 
   # ─────────────────────────────────────────────────────────────────────
   # 4. Container Scan — Trivy (reusable from gh-actions-security)
+  #    Runs on the same self-hosted runner; reads image directly from
+  #    the local Podman store — no tarball upload/download needed.
   # ─────────────────────────────────────────────────────────────────────
   container-scan:
     name: Container Scan
     needs: build
-    uses: Moz-Cyber-1/gh-actions-security/.github/workflows/reusable-container-scan.yml@main
+    uses: Moz-Cyber-2/gh-actions-security/.github/workflows/reusable-container-scan.yml@main
+    secrets: inherit
     permissions:
       contents: read
       security-events: write
+      pull-requests: write
     with:
-      image_tarball_artifact: docker-image
-      image_name: devsecops-app
+      image_ref: ${{ needs.build.outputs.image_ref }}
       severity: "HIGH,CRITICAL"
       fail_on_findings: true
