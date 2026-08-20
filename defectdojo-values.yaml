@@ -1,0 +1,131 @@
+# DefectDojo Helm values — local kind cluster
+# Access via: kubectl -n defectdojo port-forward svc/defectdojo-django 8080:80
+
+createSecret: false
+createPostgresqlSecret: false
+createValkeySecret: false
+
+host: localhost
+alternativeHosts:
+  - "127.0.0.1"
+  - "defectdojo.local"
+
+imagePullPolicy: IfNotPresent
+
+# ── Django app ────────────────────────────────────────────────────────────────
+django:
+  ingress:
+    enabled: false
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  uwsgi:
+    livenessProbe:
+      initialDelaySeconds: 120
+    readinessProbe:
+      initialDelaySeconds: 120
+
+# ── Nginx ─────────────────────────────────────────────────────────────────────
+nginx:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# ── Celery workers ────────────────────────────────────────────────────────────
+celery:
+  worker:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  beat:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+# ── Initializer job ───────────────────────────────────────────────────────────
+initializer:
+  run: true
+  keepSecret: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ── PostgreSQL ────────────────────────────────────────────────────────────────
+postgresql:
+  enabled: true
+  auth:
+    username: defectdojo
+    password: "defectdojo-pass"
+    database: defectdojo
+    existingSecret: defectdojo-postgresql-specific
+    secretKeys:
+      adminPasswordKey: postgresql-postgres-password
+      userPasswordKey: postgresql-password
+  primary:
+    persistence:
+      enabled: true
+      size: 2Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# ── Valkey (Redis) ────────────────────────────────────────────────────────────
+valkey:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    existingSecret: defectdojo-valkey-specific
+    existingSecretPasswordKey: valkey-password
+  master:
+    persistence:
+      enabled: false
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+
+# ── DB migration checker init container ──────────────────────────────────────
+dbMigrationChecker:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ── Disable unused features ───────────────────────────────────────────────────
+networkPolicy:
+  enabled: false
+trackConfig: disabled
