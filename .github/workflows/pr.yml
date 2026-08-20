@@ -11,6 +11,7 @@ jobs:
   secrets-scan:
     name: Secrets Scan
     uses: Moz-Cyber-2/gh-actions-security/.github/workflows/secrets-scan-pr.yaml@main
+    secrets: inherit
     permissions:
       contents: read
       pull-requests: write
@@ -21,6 +22,7 @@ jobs:
   sast:
     name: SAST
     uses: Moz-Cyber-2/gh-actions-security/.github/workflows/reusable-sast.yml@main
+    secrets: inherit
     permissions:
       contents: read
       security-events: write
@@ -63,6 +65,7 @@ jobs:
     name: Container Scan
     needs: build
     uses: Moz-Cyber-2/gh-actions-security/.github/workflows/reusable-container-scan.yml@main
+    secrets: inherit
     permissions:
       contents: read
       security-events: write
