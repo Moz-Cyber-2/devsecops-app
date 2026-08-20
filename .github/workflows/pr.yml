@@ -12,6 +12,9 @@ jobs:
     name: Secrets Scan
     uses: Moz-Cyber-2/gh-actions-security/.github/workflows/secrets-scan-pr.yaml@main
     secrets: inherit
+    permissions:
+      contents: read
+      pull-requests: write
 
   # ─────────────────────────────────────────────────────────────────────
   # 2. SAST — Semgrep (reusable from gh-actions-security)
@@ -20,6 +23,9 @@ jobs:
     name: SAST
     uses: Moz-Cyber-2/gh-actions-security/.github/workflows/reusable-sast.yml@main
     secrets: inherit
+    permissions:
+      contents: read
+      security-events: write
     with:
       config: "p/owasp-top-ten p/nodejs p/secrets"
       fail_on_findings: true
@@ -60,6 +66,9 @@ jobs:
     needs: build
     uses: Moz-Cyber-2/gh-actions-security/.github/workflows/reusable-container-scan.yml@main
     secrets: inherit
+    permissions:
+      contents: read
+      security-events: write
     with:
       image_ref: ${{ needs.build.outputs.image_ref }}
       severity: "HIGH,CRITICAL"
