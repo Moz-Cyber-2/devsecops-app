@@ -78,14 +78,6 @@ jobs:
           echo "=== Current pods in devsecops-demo namespace ==="
           kubectl get pods -n devsecops-demo 2>/dev/null || echo "(namespace empty)"
 
-      - name: Update image tag in kustomize overlay
-        working-directory: manifests/local
-        run: |
-          # Replace :latest with the exact SHA for reproducibility
-          # (Note: deny-latest-tag policy will block :latest anyway)
-          kustomize edit set image \
-            ghcr.io/moz-cyber-2/devsecops-app=ghcr.io/moz-cyber-2/devsecops-app:${{ needs.build-and-push.outputs.image_tag }}
-
       - name: Apply manifests via kustomize
         run: |
           echo "=== Applying manifests ==="
