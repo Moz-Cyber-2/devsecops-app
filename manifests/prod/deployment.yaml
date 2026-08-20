@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devsecops-app-prod
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: devsecops-app-prod
+  template:
+    metadata:
+      labels:
+        app: devsecops-app-prod
+    spec:
+      # INSECURE: hostNetwork gives the pod access to the node's network namespace
+      hostNetwork: true
+      # INSECURE: hostPID gives the pod access to the node's PID namespace
+      hostPID: true
+      containers:
+        - name: app
+          image: ghcr.io/Moz-Cyber-2/devsecops-app:latest
+          ports:
+            - containerPort: 3000
+          securityContext:
+            # INSECURE: running as root user
+            runAsUser: 0
+            # INSECURE: allows privilege escalation
+            allowPrivilegeEscalation: true
+            # INSECURE: privileged container has full host access
+            privileged: true
+            # INSECURE: writable root filesystem
+            readOnlyRootFilesystem: false
+          # INSECURE: no resource limits — risk of resource exhaustion
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: DB_HOST
+              value: "postgres.internal"
