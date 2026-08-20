@@ -26,6 +26,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      pull-requests: write
     with:
       config: "p/owasp-top-ten p/nodejs p/secrets"
       fail_on_findings: true
@@ -69,6 +70,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      pull-requests: write
     with:
       image_ref: ${{ needs.build.outputs.image_ref }}
       severity: "HIGH,CRITICAL"
